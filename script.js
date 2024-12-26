@@ -296,7 +296,7 @@ function parallelGroupManagerFactory(index) {
     const node = document.createElement('div');
     node.classList.add('parallelgroupdeleter');
 
-    node.innerText = '❌';
+    node.innerHTML = '<span>❌</span>';
     node.title = 'Удалить часть цепи?'
 
     node.addEventListener('click', (event) => {
@@ -317,7 +317,7 @@ function parallelGroupAdderFactory(index) {
     const node = document.createElement('div');
     node.classList.add('parallelgroupadder');
 
-    node.innerText = '🖍';
+    node.innerHTML = '<span>🖍</span>';
     node.title = 'Добавить параллель?'
 
     node.addEventListener('click', (event) => {
@@ -380,6 +380,10 @@ class CircuitPart {
             this.resistance += r;
             this.voltage += u;
         })
+
+        if (this.voltage === NaN) {
+            this.voltage = 0;
+        }
 
         if (this.resistance === Infinity || this.voltage === 0) {
             this.amperage = 0;
@@ -524,7 +528,11 @@ class ParallelGroups {
            this.current = 0;
         } else {
             this.resistance = 1 / reverseResistance;
-            this.voltage = current / reverseResistance;
+            if (reverseResistance == 0) {
+                this.voltage = 0;
+            } else {
+                this.voltage = current / reverseResistance;
+            }
             this.amperage = current;
         }
 
@@ -533,7 +541,7 @@ class ParallelGroups {
 
     Visit(current, voltage) {
         this.groups.forEach((v, i) => {
-            v.Visit(voltage / v.resistance, voltage);
+            v.Visit(v.resistance == Infinity ? 0 : voltage / v.resistance, voltage);
         })
     }
 }
@@ -603,6 +611,10 @@ function addResistor(event) {
     let [scope, index] = getCircuitElementsArray();
 
     scope.splice(index, 0, new Resistor(parseInt(resistance)));
+
+    let indexes = currentPosition.split('-');
+    indexes[indexes.length - 1] = index + 1;
+    currentPosition = indexes.join('-');
 
     updateCircuit();
 }
@@ -720,9 +732,9 @@ function addParallelGroups() {
 function updateCircuit() {
     let [r, u] = circuit.Calculate();
     document.getElementById('resistorDisplay').innerHTML = 
-        "Итоговое сопротивление цепи: " + to_scientific_notation(r) + ' Ом, <br/>' + 
-        "Итоговое напряжение цепи: " + to_scientific_notation(u) + ' В, <br/>' + 
-        "Итоговая сила тока цепи: " + to_scientific_notation(r == Infinity ? 0 : u / r) + ' А, <br/>';
+        "Итоговое сопротивление цепи: " + to_scientific_notation(r) + ' Ом<br/>' + 
+        "Итоговое напряжение цепи: " + to_scientific_notation(u) + ' В<br/>' + 
+        "Итоговая сила тока цепи: " + to_scientific_notation(r == Infinity ? 0 : u / r) + ' А';
     circuit.Visit(circuit.amperage, circuit.voltage);
 
     document.getElementById('circuit').innerHTML = '';
@@ -814,20 +826,18 @@ window.onload = () => {
     let c = new CircuitPart();
     c.Append(new Battery(10, 0));
 
-    c.Append(new Resistor(23));
     c.Append(new Ammeter());
 
     let p1 = new ParallelGroups();
     p1.AppendGroup().AppendGroup();
 
     c.Append(p1);
-    c.Append(new Ammeter());
 
     p1.groups[0].Append(new Ammeter());
-    p1.groups[0].Append(new Resistor(6));
+    p1.groups[0].Append(new Resistor(8));
     p1.groups[1].Append(new Ammeter());
-    p1.groups[1].Append(new Resistor(9));
-    p1.groups[1].Append(new Battery(42, 7));
+    p1.groups[1].Append(new Resistor(10));
+    p1.groups[1].Append(new Battery(45, 15));
     
     circuit = c;
 
