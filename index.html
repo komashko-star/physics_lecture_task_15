@@ -14,8 +14,34 @@
 
       <div id="body1">
         
-      <div id="circuitForm">
-        <input id="resistor" type="number" step="0.001" required/>
+      <div id="circuitForm" style="display: flex; flex-direction: row;">
+        <div id="resistorForm">
+          <p>Резистор</p>
+
+          <input id="resistorResistance" type="number" step="0.001" value="10" required/> <span>Ом</span>
+
+          <button id="resistorSubmitButton">Добавить резистор</button><br/>
+        </div>
+
+        <div id="batteryForm">
+          <p>Источник ЭДС</p>
+
+          <input id="batteryResistance" type="number" step="0.001" value="1" required/> <span>Ом</span> <br/>
+
+          <input id="batteryEMF" type="number" step="0.001" value="10" required/> <span>В</span>
+
+          <button id="batterySubmitButton">Добавить источник ЭДС</button><br/>
+        </div>
+
+        <div id="measurerForm">
+          <button id="ammeterSubmitButton">Добавить амперметр</button><br/>
+
+          <button id="voltmeterSubmitButton">Добавить вольтмтер</button><br/>
+
+          <button id="parallelGroupsSubmitButton">Добавить параллельное соединение</button><br/>
+
+          <button id="clearCircuitSubmitButton">Очистить схему</button><br/>
+        </div>
 
         <span id="resistorDisplay"></span>
       </div>

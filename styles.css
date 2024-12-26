@@ -243,6 +243,14 @@ input {
     display: inline-block;
 }
 
+.hover-placeholder .placeholder-visual, .placeholder-visual.hover-placeholder {
+    background-color: #3AD4C0;
+}
+
+.selected-placeholder .placeholder-visual, .placeholder-visual.selected-placeholder {
+    background-color: red;
+}
+
 .filler {
     width: fit-content;
     display: inline-block;

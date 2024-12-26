@@ -3,6 +3,7 @@ var ParallelInterval;
 var WireTopMargin;
 var WireWidth;
 
+var currentPosition = null;
 
 function round(number, a) {
     if (a > 0) {
@@ -70,6 +71,8 @@ class Resistor {
         return 0;
     }
 
+    get type() { return 'resistor'; }
+
     Construct() {
         const node = document.createElement('div');
         node.classList.add('resistor');
@@ -103,6 +106,8 @@ class Battery {
     get amperage() {
         return this.emf / this.resistance;
     }
+
+    get type() { return 'battery'; }
 
     Construct() {
         const node = document.createElement('div');
@@ -139,6 +144,8 @@ class Ammeter {
         return 0;
     }
 
+    get type() { return 'ammeter'; }
+
     Calculate() {
         return [this.resistance, this.voltage];
     }
@@ -174,6 +181,8 @@ class Voltmeter {
         return 0;
     }
 
+    get type() { return 'voltmeter'; }
+
     Calculate() {
         return [this.resistance, 0];
     }
@@ -207,7 +216,11 @@ function placeholderFactory(index) {
     n.classList.add('placeholder-visual')
 
     node.appendChild(n);
-    node.setAttribute('indexInCircuit', index);
+    node.setAttribute('indexincircuit', index);
+    if (index == currentPosition) {
+        node.classList.add('selected-placeholder');
+    }
+    n.setAttribute('indexincircuit', index);
 
     return node;
 }
@@ -250,6 +263,9 @@ class CircuitPart {
         this.voltage = null;
         this.amperage = null;
     }
+
+    get type() { return 'circuitpart'; }
+
     Insert(index, element) {
         this.elements.splice(index, 0, element);
 
@@ -293,15 +309,19 @@ class CircuitPart {
         return [this.resistance, this.voltage];
     }
 
-    Construct() {
+    Construct(indexStack=null) {
+        if (indexStack === null) {
+            indexStack = [];
+        }
+
         const node = document.createElement('div');
         node.classList.add('circuitpart');
         
-        node.appendChild(placeholderFactory(0));
+        node.appendChild(placeholderFactory(indexStack.concat([0]).join('-')));
 
         this.elements.forEach((v, i) => {
-            node.appendChild(v.Construct());
-            node.appendChild(placeholderFactory(i + 1));
+            node.appendChild(v.Construct(indexStack.concat([i])));
+            node.appendChild(placeholderFactory(indexStack.concat(i + 1).join('-')));
         });
 
         return node;
@@ -326,6 +346,8 @@ class ParallelGroups {
         this.amperage = null;
     }
 
+    get type() { return 'parallelgroups'; }
+
     AppendGroup(group=null) {
         if (group === null) {
             this.groups.push(new CircuitPart());
@@ -342,7 +364,10 @@ class ParallelGroups {
         return new ParallelGroups(groups);
     }
 
-    Construct() {
+    Construct(indexStack=null) {
+        if (indexStack === null) {
+            indexStack = [];
+        }
         const node = document.createElement('div');
         node.classList.add('parallelgroups');
         node.style.display = "flex"
@@ -351,7 +376,7 @@ class ParallelGroups {
         let maxWidth = 0;
         
         this.groups.forEach((v, i) => {
-            const part = v.Construct();
+            const part = v.Construct(indexStack.concat([i]));
 
             let height = getHiddenOffsetHeight(part);
 
@@ -454,11 +479,191 @@ function getSize(size = '1em', parent = document.body) {
     return size;
 }
 
+function updateCurrentPosition(event) { 
+    event.preventDefault();   
+    var elements = document.getElementsByClassName("selected-placeholder");
+
+    for (var i = 0; i < elements.length; i++) {
+        elements[i].classList.remove('selected-placeholder');
+    }
+
+    event.target.classList.add('selected-placeholder');
+
+    console.log(event.target);
+
+    currentPosition = event.target.getAttribute('indexincircuit');
+}
+
+function addResistor(event) { 
+    event.preventDefault();
+
+    var resistance = document.getElementById('resistorResistance').value;
+
+    if (resistance < 0) {
+        window.alert('Сопротивление резистора не может быть меньше нуля!');
+        return;
+    }
+
+    let [scope, index] = getCircuitElementsArray();
+
+    scope.splice(index, 0, new Resistor(parseInt(resistance)));
+
+    updateCircuit();
+}
+
+function getCircuitElementsArray() {
+    let scope = circuit.elements;
+
+    if (currentPosition == null) {
+        window.alert('Выберить положение на схеме, куда вы хотите вставить элемент');
+        return;
+    }
+
+    let indexes = currentPosition.split('-');
+
+    for (let i = 0; i < indexes.length - 1; i++) {
+        let ind = parseInt(indexes[i]);
+
+        if (ind < 0 || scope.length <= ind) {
+            window.alert('Недопустимое положение');
+            return;
+            
+        }
+ 
+        let el = scope[ind];
+
+        if (el.type == "parallelgroups") {
+            scope = el.groups;
+        } else if (el.type == "circuitpart") {
+            scope = el.elements;
+        } else {
+            window.alert('Недопустимое положение');
+            return;
+        }
+    }
+
+    let index = parseInt(indexes[indexes.length - 1]);
+
+    return [scope, index];
+}
+
+function addBattery(event) { 
+    event.preventDefault();
+
+    var resistance = parseInt(document.getElementById('batteryResistance').value);
+
+    if (resistance < 0) {
+        window.alert('Сопротивление резистора не может быть меньше нуля!');
+        return;
+    }
+
+    var emf = parseInt(document.getElementById('batteryEMF').value);
+
+    let [scope, index] = getCircuitElementsArray();
+
+    scope.splice(index, 0, new Battery(emf, resistance));
+
+    let indexes = currentPosition.split('-');
+    indexes[indexes.length - 1] = index + 1;
+    currentPosition = indexes.join('-');
+
+    updateCircuit();
+}
+
+function addAmmeter(event) { 
+    event.preventDefault();
+
+    let [scope, index] = getCircuitElementsArray();
+
+    scope.splice(index, 0, new Ammeter());
+
+    let indexes = currentPosition.split('-');
+    indexes[indexes.length - 1] = index + 1;
+    currentPosition = indexes.join('-');
+
+    updateCircuit();
+}
+
+function addVoltmeter(event) { 
+    event.preventDefault();
+
+    let [scope, index] = getCircuitElementsArray();
+
+    scope.splice(index, 0, new Voltmeter());
+
+    let indexes = currentPosition.split('-');
+    indexes[indexes.length - 1] = index + 1;
+    currentPosition = indexes.join('-');
+
+    updateCircuit();
+}
+
+function addParallelGroups() {
+    event.preventDefault();
+
+    let [scope, index] = getCircuitElementsArray();
+
+    let el = new ParallelGroups();
+    el.AppendGroup().AppendGroup();
+
+    scope.splice(index, 0, el);
+
+    let indexes = currentPosition.split('-');
+    indexes[indexes.length - 1] = index + 1;
+    currentPosition = indexes.join('-');
+
+    updateCircuit();
+
+}
+
+
+function updateCircuit() {
+    let [r, u] = circuit.Calculate();
+    document.getElementById('resistorDisplay').innerHTML = 
+        "Итоговое сопротивление цепи: " + to_scientific_notation(r) + ' Ом, <br/>' + 
+        "Итоговое напряжение цепи: " + to_scientific_notation(u) + ' В, <br/>' + 
+        "Итоговая сила тока цепи: " + to_scientific_notation(r == Infinity ? 0 : u / r) + ' А, <br/>';
+    circuit.Visit(circuit.amperage, circuit.voltage);
+
+    document.getElementById('circuit').innerHTML = '';
+    document.getElementById('circuit').appendChild(circuit.Construct());
+
+    var elements = document.getElementsByClassName("placeholder");
+
+    for (var i = 0; i < elements.length; i++) {
+        elements[i].addEventListener('click', updateCurrentPosition);
+        elements[i].addEventListener('mouseover', (e) => {     
+            var elements = document.getElementsByClassName("hover-placeholder");
+
+            for (var i = 0; i < elements.length; i++) {
+                elements[i].classList.remove('hover-placeholder');
+            }
+
+            e.target.classList.add('hover-placeholder');
+        });
+        elements[i].addEventListener('mouseleave', (e) => {     
+            e.target.classList.remove('hover-placeholder');
+        });
+    }
+}
+
+var circuit = new CircuitPart();
+
 window.onload = () => {
     ElementBorderWidth = getSize(window.getComputedStyle(document.body).getPropertyValue('--element-border-width'));
     ParallelInterval = getSize(window.getComputedStyle(document.body).getPropertyValue('--parallel-interval'));
     WireTopMargin = getSize(window.getComputedStyle(document.body).getPropertyValue('--wire-top-margin'));
     WireWidth = getSize(window.getComputedStyle(document.body).getPropertyValue('--wire-height'));
+
+    document.getElementById('resistorSubmitButton').addEventListener('click', addResistor);
+    document.getElementById('batterySubmitButton').addEventListener('click', addBattery);
+    document.getElementById('ammeterSubmitButton').addEventListener('click', addAmmeter);
+    document.getElementById('voltmeterSubmitButton').addEventListener('click', addVoltmeter);
+    document.getElementById('parallelGroupsSubmitButton').addEventListener('click', addParallelGroups);
+    document.getElementById('clearCircuitSubmitButton').addEventListener('click', () => { 
+        circuit = new CircuitPart(); updateCircuit(); 
+        currentPosition = null;
+    });
 
 
     let c = new CircuitPart();
@@ -495,15 +700,13 @@ window.onload = () => {
     p1.groups[1].Append(new Ammeter());
     p1.groups[1].Append(new Resistor(9));
     p1.groups[1].Append(new Battery(42, 7));
-
     
     c.Append(new Ammeter());
 
-    let [r, u] = c.Calculate();
-    document.getElementById('resistorDisplay').innerText = r + ', ' + u;
-    c.Visit(c.amperage, c.voltage);
+    circuit = c;
 
-    document.getElementById('circuit').appendChild(c.Construct());
+    updateCircuit();
+
 }
 
 
