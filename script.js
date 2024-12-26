@@ -217,7 +217,11 @@ class CircuitPart {
             this.voltage += u;
         })
 
-        this.amperage = this.voltage / this.resistance;
+        if (this.resistance === Infinity || this.voltage === 0) {
+            this.amperage = 0;
+        } else {
+            this.amperage = this.voltage / this.resistance;
+        }
 
         return [this.resistance, this.voltage];
     }
@@ -394,24 +398,22 @@ window.onload = () => {
     c.Append(new Battery(10, 0));
 
     let p = new ParallelGroups();
-    p.AppendGroup().AppendGroup();
+    p.AppendGroup().AppendGroup().AppendGroup();
 
-    p.groups[0].Append(new Resistor(10));
-    p.groups[0].Append(new Ammeter());
-    p.groups[1].Append(new Voltmeter());
-    p.groups[1].Append(new Ammeter());
+    // p.groups[0].Append(new Resistor(10));
+    // p.groups[0].Append(new Ammeter());
+    p.groups[2].Append(new Voltmeter());
+    // p.groups[1].Append(new Ammeter());
 
 
     c.Append(p);
 
-    p.groups[0].Append(new Battery(10, 2));
-    p.groups[1].Append(new Battery(10, 2));
     
     c.Append(new Ammeter());
 
     let [r, u] = c.Calculate();
     document.getElementById('resistorDisplay').innerText = r + ', ' + u;
-    c.Visit(u / r, u);
+    c.Visit(c.amperage, c.voltage);
 
     document.getElementById('circuit').appendChild(c.Construct());
 }
