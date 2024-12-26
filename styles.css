@@ -224,11 +224,32 @@ input {
     width: fit-content;
 }
 
+.parallelgroupdeleter, .parallelgroupadder {
+    position: relative;
+    height: calc(var(--element-height) - 2 * var(--element-border-width));
+    border-radius: 5px;
+    border-width: var(--element-border-width);
+    border-style: solid;
+    border-color: #000;
+    padding-top: auto;
+    padding-bottom: auto;
+    padding-left: 5pt;
+    padding-right: 5pt;
+    text-align: center;
+    vertical-align: middle;
+    display: inline-block;
+    width: fit-content;
+}
+
 .electric-element span {
     height: 100%;
     display: flex;
     align-items: center;
 }
+
+.electric-element:hover, .parallelgroupdeleter:hover { cursor: crosshair; }
+
+.placeholder:hover, .parallelgroupadder:hover { cursor: pointer; }
 
 .placeholder {
     width: fit-content;

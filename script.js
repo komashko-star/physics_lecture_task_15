@@ -73,11 +73,21 @@ class Resistor {
 
     get type() { return 'resistor'; }
 
-    Construct() {
+    Construct(indexStack) {
         const node = document.createElement('div');
         node.classList.add('resistor');
         node.classList.add('electric-element');
         node.innerHTML = "<span>🎚 " + this.resistance + " Ом" + "</span>";
+        node.title = 'Удалить?';
+
+        node.addEventListener('click', (e) => {
+            const confirmation = confirm('Вы уверены, что хотите удалить этот элемент?');
+
+            if (confirmation) {
+                removeElectricElement(indexStack.join('-'));
+                updateCircuit();
+            }
+        });
 
         return node;
     }
@@ -109,11 +119,21 @@ class Battery {
 
     get type() { return 'battery'; }
 
-    Construct() {
+    Construct(indexStack) {
         const node = document.createElement('div');
         node.classList.add('battery');
         node.classList.add('electric-element');
         node.innerHTML = "<span>🔋 " + this.emf + " В; " + this.resistance + " Ом; " + "</span>";
+        node.title = 'Удалить?';
+
+        node.addEventListener('click', (e) => {
+            const confirmation = confirm('Вы уверены, что хотите удалить этот элемент?');
+
+            if (confirmation) {
+                removeElectricElement(indexStack.join('-'));
+                updateCircuit();
+            }
+        });
 
         return node;
     }
@@ -150,12 +170,22 @@ class Ammeter {
         return [this.resistance, this.voltage];
     }
 
-    Construct() {
+    Construct(indexStack) {
         const node = document.createElement('div');
         node.classList.add('ammeter');
         node.classList.add('electric-element');
         node.innerHTML = "<span>⏲️ " + (this.current === null ? "?" : to_scientific_notation(this.current)) + " А</span>";
         this.node = node;
+        node.title = 'Удалить?';
+
+        node.addEventListener('click', (e) => {
+            const confirmation = confirm('Вы уверены, что хотите удалить этот элемент?');
+
+            if (confirmation) {
+                removeElectricElement(indexStack.join('-'));
+                updateCircuit();
+            }
+        });
 
         return node;
     }
@@ -187,12 +217,22 @@ class Voltmeter {
         return [this.resistance, 0];
     }
 
-    Construct() {
+    Construct(indexStack) {
         const node = document.createElement('div');
         node.classList.add('ammeter');
         node.classList.add('electric-element');
         node.innerHTML = "<span>⏲️ " + (this.voltage === null ? "?" : to_scientific_notation(this.voltage)) + " В</span>";
         this.node = node;
+        node.title = 'Удалить?';
+
+        node.addEventListener('click', (e) => {
+            const confirmation = confirm('Вы уверены, что хотите удалить этот элемент?');
+
+            if (confirmation) {
+                removeElectricElement(indexStack.join('-'));
+                updateCircuit();
+            }
+        });
 
         return node;
     }
@@ -248,6 +288,47 @@ function fillerFactory(width) {
     node.appendChild(n);
 
     node.style.width = width + 'px';
+
+    return node;
+}
+
+function parallelGroupManagerFactory(index) {
+    const node = document.createElement('div');
+    node.classList.add('parallelgroupdeleter');
+
+    node.innerText = '❌';
+    node.title = 'Удалить часть цепи?'
+
+    node.addEventListener('click', (event) => {
+        event.preventDefault();
+
+        const confirmation = confirm('Вы уверены, что хотите удалить эту часть цепи? Вместе удалятся и все элементы этой цепи!');
+
+        if (confirmation) {
+            removeElectricElement(index);
+            updateCircuit();
+        }
+    });
+
+    return node;
+}
+
+function parallelGroupAdderFactory(index) {
+    const node = document.createElement('div');
+    node.classList.add('parallelgroupadder');
+
+    node.innerText = '🖍';
+    node.title = 'Добавить параллель?'
+
+    node.addEventListener('click', (event) => {
+        event.preventDefault();
+
+        let [scope, i] = getCircuitElementsArray(index);
+
+        scope[i].groups.splice(scope.length - 1, 0, new CircuitPart());
+
+        updateCircuit();
+    });
 
     return node;
 }
@@ -371,7 +452,18 @@ class ParallelGroups {
         const node = document.createElement('div');
         node.classList.add('parallelgroups');
         node.style.display = "flex"
-        node.style.flexDirection = 'column';
+        node.style.flexDirection = 'row';
+
+        node.appendChild(parallelGroupAdderFactory(indexStack.join('-')));
+
+        const subnode = document.createElement('div');
+
+        node.appendChild(subnode);
+
+        subnode.classList.add('parallelgroups');
+        subnode.style.display = "flex"
+        subnode.style.flexDirection = 'column';
+
 
         let maxWidth = 0;
         
@@ -384,23 +476,27 @@ class ParallelGroups {
 
             if (i == 0) {
                 height -= WireTopMargin;
-            }
-
-            if (i == this.groups.length - 1) {
+                if (i == this.groups.length - 1) {
+                    height = WireWidth;
+                }
+            } else if (i == this.groups.length - 1) {
                 height = WireTopMargin + WireWidth;
-            } else {
+            } 
+            
+            if (i != this.groups.length - 1) {
                 height += ParallelInterval + 2 * ElementBorderWidth;
             }
 
+            part.firstChild.before(parallelGroupManagerFactory(indexStack.concat([i]).join('-')));
             part.firstChild.before(parallelGroupsKnotFactory(position, height));
             part.lastChild.after(parallelGroupsKnotFactory(position, height));
             
-            node.appendChild(part);
+            subnode.appendChild(part);
 
             maxWidth = Math.max(maxWidth, getHiddenOffsetWidth(part));
         });
 
-        for (const child of node.children) {
+        for (const child of subnode.children) {
             let w = maxWidth - getHiddenOffsetWidth(child);
             if (w == 0) {
                 continue;
@@ -511,15 +607,19 @@ function addResistor(event) {
     updateCircuit();
 }
 
-function getCircuitElementsArray() {
+function getCircuitElementsArray(position=null) {
     let scope = circuit.elements;
 
-    if (currentPosition == null) {
-        window.alert('Выберить положение на схеме, куда вы хотите вставить элемент');
+    if (position == null) {
+        position = currentPosition;
+    }
+
+    if (position == null) {
+        window.alert('Выберите положение на схеме, куда вы хотите вставить элемент');
         return;
     }
 
-    let indexes = currentPosition.split('-');
+    let indexes = position.split('-');
 
     for (let i = 0; i < indexes.length - 1; i++) {
         let ind = parseInt(indexes[i]);
@@ -647,6 +747,51 @@ function updateCircuit() {
     }
 }
 
+function removeElectricElement(position) {
+    let circuitPart = circuit;
+    let scope = circuit.elements;
+
+    if (position == null) {
+        window.alert('Выберите положение на схеме, куда вы хотите вставить элемент');
+        return;
+    }
+
+    let indexes = position.split('-');
+
+    for (let i = 0; i < indexes.length - 1; i++) {
+        let ind = parseInt(indexes[i]);
+
+        if (ind < 0 || scope.length <= ind) {
+            window.alert('Недопустимое положение');
+            return;
+            
+        }
+ 
+        let el = scope[ind];
+
+        if (el.type == "parallelgroups") {
+            circuitPart = el;
+            scope = el.groups;
+        } else if (el.type == "circuitpart") {
+            circuitPart = el;
+            scope = el.elements;
+        } else {
+            window.alert('Недопустимое положение');
+            return;
+        }
+    }
+
+    let index = parseInt(indexes[indexes.length - 1]);
+    
+    scope.splice(index, 1);
+
+    if (circuitPart.type == "parallelgroups" && scope.length == 0) {
+        let t = position.split('-');
+        t.splice(t.length - 1, 1);
+        removeElectricElement(t.join('-'));
+    }
+}
+
 var circuit = new CircuitPart();
 
 window.onload = () => {
@@ -669,24 +814,7 @@ window.onload = () => {
     let c = new CircuitPart();
     c.Append(new Battery(10, 0));
 
-    let p = new ParallelGroups();
-    p.AppendGroup().AppendGroup().AppendGroup();
-
-    p.groups[0].Append(new Ammeter());
-    p.groups[0].Append(new Resistor(10));
-    p.groups[0].Append(new Battery(12, 5));
-    p.groups[1].Append(new Ammeter());
-    p.groups[1].Append(new Resistor(20));
-    p.groups[2].Append(new Ammeter());
-    p.groups[2].Append(new Resistor(30));
-    p.groups[2].Append(new Battery(11, 3));
-
-
-    c.Append(p);
-
     c.Append(new Resistor(23));
-
-    c.Append(new Battery(23, 2));
     c.Append(new Ammeter());
 
     let p1 = new ParallelGroups();
@@ -701,8 +829,6 @@ window.onload = () => {
     p1.groups[1].Append(new Resistor(9));
     p1.groups[1].Append(new Battery(42, 7));
     
-    c.Append(new Ammeter());
-
     circuit = c;
 
     updateCircuit();
