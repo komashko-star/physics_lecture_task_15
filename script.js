@@ -3,6 +3,60 @@ var ParallelInterval;
 var WireTopMargin;
 var WireWidth;
 
+
+function round(number, a) {
+    if (a > 0) {
+        return (number).toFixed(a);
+    } else if (a == 0) {
+        return Math.round(number);
+    } else {
+        let r = number % Math.pow(10, -a);
+    
+        if (r / Math.pow(10, -a) > 0.5) {
+            return number - number % Math.pow(10, -a);
+        } else {
+            return number - number % Math.pow(10, -a) + 1;
+        }
+    }
+}
+  
+function digitnumber(number) {
+    let a = 0;
+    if (number == 0) {
+        return 0;
+    }
+    number = Math.abs(number);
+    if (number > 1) {
+        while (number > 10) {
+            number /= 10;
+            a++;
+        }
+        return a;
+    }
+    while (number < 1) {
+        number *= 10;
+        a--;
+    }
+    return a;
+}
+  
+function to_scientific_notation(number) {
+    if (number === Infinity) {
+        return 'беск';
+    }
+    exponent = digitnumber(number);
+    if (exponent > 2 || exponent < -2) {
+        number = number * Math.pow(10, -exponent);
+    }
+  
+    let string = round(number, 2);
+    if (exponent > 2 || exponent < -2) {
+        string += ' x 10^(' + exponent + ')';
+    }
+    return string;
+}
+  
+
 class Resistor {
     constructor(resistance) {
         this.resistance = resistance;
@@ -20,7 +74,7 @@ class Resistor {
         const node = document.createElement('div');
         node.classList.add('resistor');
         node.classList.add('electric-element');
-        node.innerHTML = "<span>" + this.resistance + " Ом" + "</span>";
+        node.innerHTML = "<span>🎚 " + this.resistance + " Ом" + "</span>";
 
         return node;
     }
@@ -54,7 +108,7 @@ class Battery {
         const node = document.createElement('div');
         node.classList.add('battery');
         node.classList.add('electric-element');
-        node.innerHTML = "<span>" + this.emf + " В; " + this.resistance + " Ом; " + "</span>";
+        node.innerHTML = "<span>🔋 " + this.emf + " В; " + this.resistance + " Ом; " + "</span>";
 
         return node;
     }
@@ -93,7 +147,7 @@ class Ammeter {
         const node = document.createElement('div');
         node.classList.add('ammeter');
         node.classList.add('electric-element');
-        node.innerHTML = "<span>" + (this.current === null ? "?" : this.current) + " А</span>";
+        node.innerHTML = "<span>⏲️ " + (this.current === null ? "?" : to_scientific_notation(this.current)) + " А</span>";
         this.node = node;
 
         return node;
@@ -105,7 +159,7 @@ class Ammeter {
             return;
         }
 
-        this.node.innerHTML = "<span>" + current + " А" + "</span>";
+        this.node.innerHTML = "<span>⏲️ " + to_scientific_notation(current) + " А" + "</span>";
     }
 }
 
@@ -128,7 +182,7 @@ class Voltmeter {
         const node = document.createElement('div');
         node.classList.add('ammeter');
         node.classList.add('electric-element');
-        node.innerHTML = "<span>" + (this.voltage === null ? "?" : this.voltage) + " В</span>";
+        node.innerHTML = "<span>⏲️ " + (this.voltage === null ? "?" : to_scientific_notation(this.voltage)) + " В</span>";
         this.node = node;
 
         return node;
@@ -140,13 +194,19 @@ class Voltmeter {
             return;
         }
 
-        this.node.innerHTML = "<span>" + voltage + " В" + "</span>";
+        this.node.innerHTML = "<span>⏲️ " + to_scientific_notation(voltage) + " В" + "</span>";
     }
 }
 
 function placeholderFactory(index) {
     const node = document.createElement('div');
+    node.classList.add('circuit-element');
     node.classList.add('placeholder');
+
+    const n = document.createElement('div');
+    n.classList.add('placeholder-visual')
+
+    node.appendChild(n);
     node.setAttribute('indexInCircuit', index);
 
     return node;
@@ -166,7 +226,14 @@ function parallelGroupsKnotFactory(position=null, height=0) {
 
 function fillerFactory(width) {
     const node = document.createElement('div');
+    node.classList.add('circuit-element');
     node.classList.add('filler');
+
+    const n = document.createElement('div');
+    n.classList.add('filler-visual')
+
+    node.appendChild(n);
+
     node.style.width = width + 'px';
 
     return node;
@@ -400,13 +467,34 @@ window.onload = () => {
     let p = new ParallelGroups();
     p.AppendGroup().AppendGroup().AppendGroup();
 
-    // p.groups[0].Append(new Resistor(10));
-    // p.groups[0].Append(new Ammeter());
-    p.groups[2].Append(new Voltmeter());
-    // p.groups[1].Append(new Ammeter());
+    p.groups[0].Append(new Ammeter());
+    p.groups[0].Append(new Resistor(10));
+    p.groups[0].Append(new Battery(12, 5));
+    p.groups[1].Append(new Ammeter());
+    p.groups[1].Append(new Resistor(20));
+    p.groups[2].Append(new Ammeter());
+    p.groups[2].Append(new Resistor(30));
+    p.groups[2].Append(new Battery(11, 3));
 
 
     c.Append(p);
+
+    c.Append(new Resistor(23));
+
+    c.Append(new Battery(23, 2));
+    c.Append(new Ammeter());
+
+    let p1 = new ParallelGroups();
+    p1.AppendGroup().AppendGroup();
+
+    c.Append(p1);
+    c.Append(new Ammeter());
+
+    p1.groups[0].Append(new Ammeter());
+    p1.groups[0].Append(new Resistor(6));
+    p1.groups[1].Append(new Ammeter());
+    p1.groups[1].Append(new Resistor(9));
+    p1.groups[1].Append(new Battery(42, 7));
 
     
     c.Append(new Ammeter());

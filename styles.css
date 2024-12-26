@@ -2,11 +2,13 @@
 * {
     font-family: Nunito, sans-serif;
 
-    --element-border-width: 5px;
-    --element-height: 50px;
-    --wire-height: 10px;
-    --wire-top-margin: calc((var(--element-height) + 2 * var(--element-border-width) - var(--wire-height)) / 2);
-    --parallel-interval: 25px;
+    --element-border-width: 2px;
+    --element-height: 40px;
+    --wire-height: 5px;
+    --wire-top-margin: calc((var(--element-height) - var(--wire-height)) / 2);
+    --parallel-interval: 20px;
+
+    font-size: 12pt;
 }
 
 body, html {
@@ -200,9 +202,13 @@ input {
     background-color: hsl(300, 80%, 50%);
 }
 
+.circuit-element {
+    height: var(--element-height);
+}
+
 .electric-element {
     position: relative;
-    height: var(--element-height);
+    height: calc(var(--element-height) - 2 * var(--element-border-width));
     border-radius: 5px;
     border-width: var(--element-border-width);
     border-style: solid;
@@ -224,23 +230,33 @@ input {
 }
 
 .placeholder {
+    width: fit-content;
+    display: inline-block;
+}
+
+.placeholder-visual {
     height: var(--wire-height);
     width: 2em;
     background-color: #2A4480;
     margin-top: var(--wire-top-margin);
     margin-bottom: var(--wire-top-margin);
-    border-color: rgba(0, 0, 0, 0);
     display: inline-block;
 }
+
 .filler {
+    width: fit-content;
+    display: inline-block;
+}
+
+.filler-visual {
     height: var(--wire-height);
-    width: 2em;
+    width: 100%;
     background-color: #ccc;
     margin-top: var(--wire-top-margin);
     margin-bottom: var(--wire-top-margin);
-    border-color: rgba(0, 0, 0, 0);
     display: inline-block;
 }
+
 .parallelgroupknot {
     height: calc(var(--element-height) + var(--parallel-interval));
     width: var(--wire-height);
