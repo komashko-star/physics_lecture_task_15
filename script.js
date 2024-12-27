@@ -45,6 +45,9 @@ function to_scientific_notation(number) {
     if (number === Infinity) {
         return 'беск';
     }
+    if (isNaN(number)) {
+        return 'ОШИБКА';
+    }
     exponent = digitnumber(number);
     if (exponent > 2 || exponent < -2) {
         number = number * Math.pow(10, -exponent);
@@ -541,7 +544,7 @@ class ParallelGroups {
 
     Visit(current, voltage) {
         this.groups.forEach((v, i) => {
-            v.Visit(v.resistance == Infinity ? 0 : voltage / v.resistance, voltage);
+            v.Visit(v.resistance == Infinity || voltage == 0 ? 0 : voltage / v.resistance, voltage);
         })
     }
 }
@@ -592,8 +595,6 @@ function updateCurrentPosition(event) {
     }
 
     event.target.classList.add('selected-placeholder');
-
-    console.log(event.target);
 
     currentPosition = event.target.getAttribute('indexincircuit');
 }
